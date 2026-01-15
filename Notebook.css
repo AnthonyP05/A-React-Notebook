@@ -1,0 +1,24 @@
+.notebook-widget {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    width: 100%;
+    overflow: hidden;
+    background-color: var(--main-background-color);
+}
+
+.notebook-toolbar {
+    padding: 10px;
+    border-bottom: 1px solid var(--main-border-color);
+    display: flex;
+    gap: 10px;
+}
+
+.notebook-canvas-container {
+    flex-grow: 1;
+    overflow: auto;
+    padding: 20px;
+    display: flex;
+    justify-content: center;
+    background-color: var(--alt-background-color);
+}
