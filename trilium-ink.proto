@@ -1,0 +1,81 @@
+syntax = "proto3";
+
+package trilium_ink;
+
+// Basic geometry types
+message Point {
+  float x = 1;
+  float y = 2;
+  float pressure = 3;
+  sint32 dt = 4;        // time delta in milliseconds
+  sint32 tilt_x = 5;    // pen tilt x (optional)
+  sint32 tilt_y = 6;    // pen tilt y (optional)
+}
+
+message Bounds {
+  float min_x = 1;
+  float min_y = 2;
+  float max_x = 3;
+  float max_y = 4;
+}
+
+// Stroke definition
+message Stroke {
+  fixed64 stroke_id = 1;
+  uint32 tool = 2;          // 0=pen, 1=highlighter, 2=eraser, etc.
+  uint32 color_rgba = 3;    // RGBA color as uint32
+  float base_width = 4;     // base stroke width
+  Bounds bounds = 5;        // bounding box of the stroke
+  repeated Point points = 6;
+}
+
+// Layer within a page
+message Layer {
+  uint32 layer_id = 1;
+  string name = 2;
+  repeated Stroke strokes = 3;
+  bool visible = 4;
+}
+
+// Page definition
+message Page {
+  uint32 page_id = 1;
+  float width = 2;
+  float height = 3;
+  repeated Layer layers = 4;
+  string paper_style = 5;       // "blank", "lined", "grid", "dots"
+  uint64 created_timestamp = 6;
+  uint64 modified_timestamp = 7;
+}
+
+// Index entries
+message StrokeIndexEntry {
+  fixed64 stroke_id = 1;
+  uint32 page_id = 2;
+  Bounds bounds = 3;
+}
+
+message PageIndexEntry {
+  uint32 page_id = 1;
+  string title = 2;
+  uint64 created_timestamp = 3;
+  uint64 modified_timestamp = 4;
+}
+
+// Index files
+message StrokeIndex {
+  repeated StrokeIndexEntry entries = 1;
+}
+
+message PageIndex {
+  repeated PageIndexEntry entries = 1;
+}
+
+// Manifest
+message Manifest {
+  uint32 version = 1;
+  string created_by = 2;
+  uint64 created_timestamp = 3;
+  uint32 page_count = 4;
+  uint32 total_strokes = 5;
+}

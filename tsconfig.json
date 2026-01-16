@@ -26,6 +26,6 @@
       "../../react/hooks": ["./mocks/react_hooks.ts"]
     }
   },
-  "include": ["."],
+  "include": ["main.tsx", "Notebook.tsx", "types/**/*", "utils/**/*", "mocks/**/*"],
   "references": [{ "path": "./tsconfig.node.json" }]
 }

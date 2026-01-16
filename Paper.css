@@ -1,0 +1,243 @@
+/* Realistic Notebook Paper Styles */
+
+.notebook-paper {
+    position: relative;
+    background: linear-gradient(
+        to bottom,
+        #fefcf7 0%,
+        #faf8f3 50%,
+        #f8f6f1 100%
+    );
+    box-shadow: 
+        0 1px 3px rgba(0, 0, 0, 0.05) inset,
+        0 2px 8px rgba(0, 0, 0, 0.1),
+        0 4px 16px rgba(0, 0, 0, 0.05);
+}
+
+/* Paper texture overlay */
+.notebook-paper::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-image: 
+        repeating-linear-gradient(
+            0deg,
+            transparent,
+            transparent 1px,
+            rgba(0, 0, 0, 0.008) 1px,
+            rgba(0, 0, 0, 0.008) 2px
+        ),
+        repeating-linear-gradient(
+            90deg,
+            transparent,
+            transparent 1px,
+            rgba(0, 0, 0, 0.008) 1px,
+            rgba(0, 0, 0, 0.008) 2px
+        );
+    opacity: 0.3;
+    pointer-events: none;
+}
+
+/* Lined paper variant */
+.notebook-paper-lined {
+    background: linear-gradient(
+        to bottom,
+        #fefcf7 0%,
+        #faf8f3 50%,
+        #f8f6f1 100%
+    );
+    background-size: 100% 32px;
+    background-image: 
+        /* Horizontal lines */
+        repeating-linear-gradient(
+            transparent,
+            transparent 31px,
+            #d4c5b9 31px,
+            #d4c5b9 32px
+        ),
+        /* Paper gradient */
+        linear-gradient(
+            to bottom,
+            #fefcf7 0%,
+            #faf8f3 50%,
+            #f8f6f1 100%
+        );
+    box-shadow: 
+        0 1px 3px rgba(0, 0, 0, 0.05) inset,
+        0 2px 8px rgba(0, 0, 0, 0.1),
+        0 4px 16px rgba(0, 0, 0, 0.05);
+}
+
+/* Red margin line on left */
+.notebook-paper-lined::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 60px;
+    bottom: 0;
+    width: 2px;
+    background: linear-gradient(
+        to bottom,
+        #e8b4b8 0%,
+        #dc9fa4 50%,
+        #d89198 100%
+    );
+    opacity: 0.8;
+}
+
+/* Grid paper variant */
+.notebook-paper-grid {
+    background: linear-gradient(
+        to bottom,
+        #fefcf7 0%,
+        #faf8f3 50%,
+        #f8f6f1 100%
+    );
+    background-size: 20px 20px;
+    background-image:
+        /* Vertical lines */
+        repeating-linear-gradient(
+            90deg,
+            transparent,
+            transparent 19px,
+            #d4c5b9 19px,
+            #d4c5b9 20px
+        ),
+        /* Horizontal lines */
+        repeating-linear-gradient(
+            0deg,
+            transparent,
+            transparent 19px,
+            #d4c5b9 19px,
+            #d4c5b9 20px
+        ),
+        /* Paper gradient */
+        linear-gradient(
+            to bottom,
+            #fefcf7 0%,
+            #faf8f3 50%,
+            #f8f6f1 100%
+        );
+    box-shadow: 
+        0 1px 3px rgba(0, 0, 0, 0.05) inset,
+        0 2px 8px rgba(0, 0, 0, 0.1),
+        0 4px 16px rgba(0, 0, 0, 0.05);
+}
+
+/* Dot grid variant */
+.notebook-paper-dots {
+    background: linear-gradient(
+        to bottom,
+        #fefcf7 0%,
+        #faf8f3 50%,
+        #f8f6f1 100%
+    );
+    background-size: 20px 20px;
+    background-image:
+        radial-gradient(circle, #c8bdb1 0.8px, transparent 0.8px),
+        linear-gradient(
+            to bottom,
+            #fefcf7 0%,
+            #faf8f3 50%,
+            #f8f6f1 100%
+        );
+    box-shadow: 
+        0 1px 3px rgba(0, 0, 0, 0.05) inset,
+        0 2px 8px rgba(0, 0, 0, 0.1),
+        0 4px 16px rgba(0, 0, 0, 0.05);
+}
+
+/* Paper edge effects */
+.notebook-paper-edge-shadow {
+    box-shadow: 
+        /* Inner shadow for texture */
+        0 1px 3px rgba(0, 0, 0, 0.05) inset,
+        /* Main shadow */
+        0 2px 8px rgba(0, 0, 0, 0.1),
+        0 4px 16px rgba(0, 0, 0, 0.05),
+        /* Right edge shadow (like binding) */
+        inset -2px 0 4px rgba(0, 0, 0, 0.03);
+}
+
+/* Worn/aged paper variant */
+.notebook-paper-aged {
+    background: linear-gradient(
+        to bottom,
+        #f9f5e8 0%,
+        #f5f0e0 50%,
+        #f2ecdb 100%
+    );
+    box-shadow: 
+        0 1px 3px rgba(139, 115, 85, 0.08) inset,
+        0 2px 8px rgba(139, 115, 85, 0.12),
+        0 4px 16px rgba(139, 115, 85, 0.06);
+}
+
+/* Aged paper with stains */
+.notebook-paper-aged::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: 
+        radial-gradient(ellipse at 20% 30%, rgba(139, 115, 85, 0.03) 0%, transparent 40%),
+        radial-gradient(ellipse at 80% 70%, rgba(139, 115, 85, 0.02) 0%, transparent 30%);
+    pointer-events: none;
+}
+
+/* Spiral binding holes (optional decoration) */
+.notebook-paper-spiral::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 20px;
+    bottom: 0;
+    width: 20px;
+    background-image: repeating-linear-gradient(
+        transparent,
+        transparent 40px,
+        radial-gradient(circle at center, #d4c5b9 3px, transparent 3px) 40px,
+        transparent 50px
+    );
+    background-size: 20px 50px;
+    pointer-events: none;
+}
+
+/* Canvas-specific paper styling */
+canvas.notebook-paper-canvas {
+    background: linear-gradient(
+        to bottom,
+        #fefcf7 0%,
+        #faf8f3 50%,
+        #f8f6f1 100%
+    ) !important;
+    box-shadow: 
+        0 1px 3px rgba(0, 0, 0, 0.05) inset,
+        0 2px 8px rgba(0, 0, 0, 0.1),
+        0 4px 16px rgba(0, 0, 0, 0.05) !important;
+}
+
+/* Utility classes */
+.paper-shadow-light {
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05), 0 2px 6px rgba(0, 0, 0, 0.08);
+}
+
+.paper-shadow-medium {
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08), 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.paper-shadow-heavy {
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12), 0 8px 24px rgba(0, 0, 0, 0.15);
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    .notebook-paper-lined::before {
+        left: 40px; /* Smaller margin on mobile */
+    }
+}

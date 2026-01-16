@@ -12,6 +12,39 @@
     border-bottom: 1px solid var(--main-border-color);
     display: flex;
     gap: 10px;
+    align-items: center;
+    background-color: var(--main-background-color);
+}
+
+.notebook-toolbar button {
+    padding: 8px 16px;
+    border: 1px solid var(--main-border-color);
+    background-color: var(--button-background-color);
+    color: var(--main-text-color);
+    border-radius: 4px;
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+
+.notebook-toolbar button:hover {
+    background-color: var(--hover-item-background-color);
+}
+
+.notebook-toolbar button.active {
+    background-color: var(--active-item-background-color);
+    border-color: var(--main-border-color);
+}
+
+.notebook-toolbar input[type="color"] {
+    width: 40px;
+    height: 32px;
+    border: 1px solid var(--main-border-color);
+    border-radius: 4px;
+    cursor: pointer;
+}
+
+.notebook-toolbar input[type="range"] {
+    width: 120px;
 }
 
 .notebook-canvas-container {
@@ -22,3 +55,9 @@
     justify-content: center;
     background-color: var(--alt-background-color);
 }
+
+.notebook-canvas-container canvas {
+    cursor: crosshair;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
