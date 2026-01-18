@@ -16,7 +16,6 @@ import {
 
 export default function Notebook({ note }: TypeWidgetProps) {
     const canvasRef = useRef<HTMLCanvasElement>(null);
-    const cacheCanvasRef = useRef<HTMLCanvasElement | null>(null);
     const activeStrokeRef = useRef<Stroke | null>(null);
     const lastPointerTimeRef = useRef<number | null>(null);
     const strokesRef = useRef<Stroke[]>([]);
@@ -24,6 +23,9 @@ export default function Notebook({ note }: TypeWidgetProps) {
     const redoStackRef = useRef<Array<{ before: Stroke[]; after: Stroke[] }>>([]);
     const eraserBeforeRef = useRef<Stroke[] | null>(null);
     const eraserDidChangeRef = useRef(false);
+    const tilesRef = useRef<Map<string, { canvas: HTMLCanvasElement; dirty: boolean }>>(new Map());
+    const tileIndexRef = useRef<Map<string, Set<bigint>>>(new Map());
+    const strokeMapRef = useRef<Map<bigint, Stroke>>(new Map());
     const [isReadOnly] = useNoteLabelBoolean(note, "readOnly");
     const [isDrawing, setIsDrawing] = useState(false);
     const [currentTool, setCurrentTool] = useState<ToolType>(ToolType.PEN);
@@ -35,6 +37,7 @@ export default function Notebook({ note }: TypeWidgetProps) {
     );
     const [currentWidth, setCurrentWidth] = useState(2);
     const [paperStyle, setPaperStyle] = useState<'blank' | 'lined' | 'grid' | 'dots'>('lined');
+    const tileSize = 512;
     
     // Completed strokes for current page
     const [strokes, setStrokes] = useState<Stroke[]>([]);
@@ -58,9 +61,17 @@ export default function Notebook({ note }: TypeWidgetProps) {
     // Redraw canvas when strokes change
     useEffect(() => {
         strokesRef.current = strokes;
-        rebuildCacheFromStrokes();
+        if (strokes.length > 0 && tileIndexRef.current.size === 0) {
+            rebuildCacheFromStrokes();
+        }
         drawCacheToMain();
     }, [strokes]);
+
+    // Rebuild tiles when page size changes
+    useEffect(() => {
+        rebuildCacheFromStrokes();
+        drawCacheToMain();
+    }, [currentPage.width, currentPage.height]);
 
     // Sync paper style with current page
     useEffect(() => {
@@ -127,6 +138,57 @@ export default function Notebook({ note }: TypeWidgetProps) {
         x: p.x * currentPage.width,
         y: p.y * currentPage.height
     });
+
+    const strokeBoundsPx = (bounds: Bounds) => ({
+        minX: bounds.minX * currentPage.width,
+        minY: bounds.minY * currentPage.height,
+        maxX: bounds.maxX * currentPage.width,
+        maxY: bounds.maxY * currentPage.height
+    });
+
+    const getTileKey = (x: number, y: number) => `${x},${y}`;
+
+    const getTileBoundsPx = (tileX: number, tileY: number) => ({
+        minX: tileX * tileSize,
+        minY: tileY * tileSize,
+        maxX: (tileX + 1) * tileSize,
+        maxY: (tileY + 1) * tileSize
+    });
+
+    const getTilesForBounds = (boundsPx: { minX: number; minY: number; maxX: number; maxY: number }) => {
+        const startX = Math.floor(boundsPx.minX / tileSize);
+        const endX = Math.floor(boundsPx.maxX / tileSize);
+        const startY = Math.floor(boundsPx.minY / tileSize);
+        const endY = Math.floor(boundsPx.maxY / tileSize);
+        const tiles: Array<{ x: number; y: number }> = [];
+        for (let y = startY; y <= endY; y++) {
+            for (let x = startX; x <= endX; x++) {
+                tiles.push({ x, y });
+            }
+        }
+        return tiles;
+    };
+
+    const ensureTile = (tileX: number, tileY: number) => {
+        const key = getTileKey(tileX, tileY);
+        const existing = tilesRef.current.get(key);
+        if (existing) return existing;
+        const canvas = document.createElement('canvas');
+        canvas.width = tileSize;
+        canvas.height = tileSize;
+        const tile = { canvas, dirty: true };
+        tilesRef.current.set(key, tile);
+        return tile;
+    };
+
+    const markTilesDirtyForBounds = (bounds: Bounds) => {
+        const boundsPx = strokeBoundsPx(bounds);
+        const tiles = getTilesForBounds(boundsPx);
+        for (const { x, y } of tiles) {
+            const tile = ensureTile(x, y);
+            tile.dirty = true;
+        }
+    };
 
     const getEraserRadius = () => currentWidth * 5;
 
@@ -270,16 +332,29 @@ export default function Notebook({ note }: TypeWidgetProps) {
         bounds.maxY = Math.max(bounds.maxY, p.y);
     };
 
-    const ensureCacheCanvas = () => {
-        const canvas = canvasRef.current;
-        if (!canvas) return null;
-        if (!cacheCanvasRef.current) {
-            const offscreen = document.createElement('canvas');
-            offscreen.width = canvas.width;
-            offscreen.height = canvas.height;
-            cacheCanvasRef.current = offscreen;
+    const renderTile = (tileX: number, tileY: number, tile: { canvas: HTMLCanvasElement; dirty: boolean }) => {
+        const ctx = tile.canvas.getContext('2d');
+        if (!ctx) return;
+        ctx.clearRect(0, 0, tileSize, tileSize);
+        const key = getTileKey(tileX, tileY);
+        const strokeIds = tileIndexRef.current.get(key);
+        if (!strokeIds || strokeIds.size === 0) return;
+
+        const tileBounds = getTileBoundsPx(tileX, tileY);
+        ctx.save();
+        ctx.beginPath();
+        ctx.rect(0, 0, tileSize, tileSize);
+        ctx.clip();
+        ctx.translate(-tileBounds.minX, -tileBounds.minY);
+
+        for (const id of strokeIds) {
+            const stroke = strokeMapRef.current.get(id);
+            if (!stroke) continue;
+            drawStroke(ctx, stroke);
         }
-        return cacheCanvasRef.current;
+
+        ctx.restore();
+        tile.dirty = false;
     };
 
     const drawStroke = (ctx: CanvasRenderingContext2D, stroke: Stroke) => {
@@ -323,13 +398,21 @@ export default function Notebook({ note }: TypeWidgetProps) {
     };
 
     const rebuildCacheFromStrokes = () => {
-        const cacheCanvas = ensureCacheCanvas();
-        if (!cacheCanvas) return;
-        const cacheCtx = cacheCanvas.getContext('2d');
-        if (!cacheCtx) return;
-        cacheCtx.clearRect(0, 0, cacheCanvas.width, cacheCanvas.height);
+        tilesRef.current.clear();
+        tileIndexRef.current.clear();
+        strokeMapRef.current.clear();
+
         for (const stroke of strokes) {
-            drawStroke(cacheCtx, stroke);
+            strokeMapRef.current.set(stroke.strokeId, stroke);
+            const boundsPx = strokeBoundsPx(stroke.bounds);
+            const tiles = getTilesForBounds(boundsPx);
+            for (const { x, y } of tiles) {
+                const key = getTileKey(x, y);
+                const set = tileIndexRef.current.get(key) ?? new Set<bigint>();
+                set.add(stroke.strokeId);
+                tileIndexRef.current.set(key, set);
+                ensureTile(x, y).dirty = true;
+            }
         }
     };
 
@@ -339,13 +422,56 @@ export default function Notebook({ note }: TypeWidgetProps) {
         const ctx = canvas.getContext('2d');
         if (!ctx) return;
         ctx.clearRect(0, 0, canvas.width, canvas.height);
-        const cacheCanvas = ensureCacheCanvas();
-        if (cacheCanvas) {
-            ctx.drawImage(cacheCanvas, 0, 0);
+
+        for (const [key, tile] of tilesRef.current.entries()) {
+            const [xStr, yStr] = key.split(',');
+            const tileX = Number(xStr);
+            const tileY = Number(yStr);
+            if (tile.dirty) {
+                renderTile(tileX, tileY, tile);
+            }
+            ctx.drawImage(tile.canvas, tileX * tileSize, tileY * tileSize);
         }
     };
 
     const applyStrokes = (nextStrokes: Stroke[]) => {
+        const before = strokesRef.current;
+        const beforeMap = new Map<bigint, Stroke>(before.map(s => [s.strokeId, s]));
+        const afterMap = new Map<bigint, Stroke>(nextStrokes.map(s => [s.strokeId, s]));
+
+        for (const [id, stroke] of beforeMap.entries()) {
+            if (afterMap.has(id)) continue;
+            const boundsPx = strokeBoundsPx(stroke.bounds);
+            const tiles = getTilesForBounds(boundsPx);
+            for (const { x, y } of tiles) {
+                const key = getTileKey(x, y);
+                const set = tileIndexRef.current.get(key);
+                if (set) {
+                    set.delete(id);
+                    if (set.size === 0) {
+                        tileIndexRef.current.delete(key);
+                    }
+                }
+                const tile = ensureTile(x, y);
+                tile.dirty = true;
+            }
+        }
+
+        for (const [id, stroke] of afterMap.entries()) {
+            if (beforeMap.has(id)) continue;
+            const boundsPx = strokeBoundsPx(stroke.bounds);
+            const tiles = getTilesForBounds(boundsPx);
+            for (const { x, y } of tiles) {
+                const key = getTileKey(x, y);
+                const set = tileIndexRef.current.get(key) ?? new Set<bigint>();
+                set.add(id);
+                tileIndexRef.current.set(key, set);
+                const tile = ensureTile(x, y);
+                tile.dirty = true;
+            }
+        }
+
+        strokeMapRef.current = afterMap;
         setStrokes(nextStrokes);
         setCurrentPage(prev => ({
             ...prev,
@@ -559,11 +685,6 @@ export default function Notebook({ note }: TypeWidgetProps) {
         applyStrokes(after);
         pushCommand(before, after);
 
-        const cacheCanvas = ensureCacheCanvas();
-        const cacheCtx = cacheCanvas?.getContext('2d');
-        if (cacheCtx) {
-            drawStroke(cacheCtx, finalizedStroke);
-        }
         drawCacheToMain();
 
         activeStrokeRef.current = null;
@@ -574,12 +695,7 @@ export default function Notebook({ note }: TypeWidgetProps) {
     };
 
     const handleClear = () => {
-        setStrokes([]);
-        setCurrentPage(prev => ({
-            ...prev,
-            modifiedTimestamp: BigInt(Date.now()),
-            layers: prev.layers.map(layer => ({ ...layer, strokes: [] }))
-        }));
+        applyStrokes([]);
         redrawCanvas();
     };
 
